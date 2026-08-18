@@ -1,0 +1,40 @@
+name: v0.5 ranking challengers
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "src/run_v05_challengers.py"
+      - ".github/workflows/v05_challengers.yml"
+      - "src/run_out_of_sample.py"
+      - "requirements.txt"
+
+permissions:
+  contents: read
+
+jobs:
+  compare:
+    strategy:
+      fail-fast: false
+      matrix:
+        year: [2021, 2022, 2023, 2024]
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install -r requirements.txt
+      - name: Validate frozen v0.4 rules
+        run: python -m pytest -q
+      - name: Run v0.5 challengers
+        run: python src/run_v05_challengers.py --year "${{ matrix.year }}"
+      - name: Upload comparison results
+        uses: actions/upload-artifact@v4
+        with:
+          name: market-signal-v05-${{ matrix.year }}
+          path: results_v05/
+          if-no-files-found: error
