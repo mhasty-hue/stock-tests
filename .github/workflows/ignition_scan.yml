@@ -1,0 +1,38 @@
+name: Catalyst ignition paper scan
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "src/catalyst_ignition_scan.py"
+      - ".github/workflows/ignition_scan.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install -r requirements.txt
+      - name: Run catalyst ignition paper scanner
+        env:
+          SEC_USER_AGENT: "MarketSignalLab research mhasty-hue"
+          IGNITION_MIN_PRICE: "2"
+          IGNITION_MAX_PRICE: "100"
+          IGNITION_MIN_DOLLAR_VOL: "5000000"
+          IGNITION_MAX_FILINGS: "120"
+        run: python src/catalyst_ignition_scan.py
+      - name: Upload ignition scan
+        uses: actions/upload-artifact@v4
+        with:
+          name: catalyst-ignition-scan
+          path: results/
+          if-no-files-found: error
