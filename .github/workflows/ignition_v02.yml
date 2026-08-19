@@ -1,0 +1,42 @@
+name: Catalyst Ignition v0.2 market-first scan
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "src/catalyst_ignition_v02.py"
+      - ".github/workflows/ignition_v02.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install -r requirements.txt
+      - name: Run Catalyst Ignition v0.2
+        continue-on-error: true
+        env:
+          SEC_USER_AGENT: "MarketSignalLab research mhasty-hue contact via GitHub"
+          IGNITION_MIN_PRICE: "2"
+          IGNITION_MAX_PRICE: "100"
+          IGNITION_MIN_DOLLAR_VOL: "1000000"
+          IGNITION_MAX_SYMBOLS: "2500"
+          IGNITION_MAX_CATALYSTS: "120"
+          IGNITION_BATCH_SIZE: "30"
+        run: python src/catalyst_ignition_v02.py
+      - name: Upload v0.2 scan and diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: catalyst-ignition-v02
+          path: results_v02/
+          if-no-files-found: warn
