@@ -1,0 +1,41 @@
+name: Grade v0.5 forward signals
+on:
+  workflow_dispatch:
+    inputs:
+      source_run_id:
+        description: 'v0.5 workflow run ID whose artifact should be graded'
+        required: true
+        type: string
+jobs:
+  grade:
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install requests
+      - name: Download frozen v0.5 artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: catalyst-ignition-v05-acceleration
+          run-id: ${{ inputs.source_run_id }}
+          github-token: ${{ github.token }}
+          path: frozen_v05
+      - name: Grade signals
+        env:
+          ALPACA_API_KEY: ${{ secrets.ALPACA_API_KEY }}
+          ALPACA_SECRET_KEY: ${{ secrets.ALPACA_SECRET_KEY }}
+          ALPACA_DATA_FEED: iex
+          SIGNAL_FILE: frozen_v05/awakening_scan.csv
+        run: python src/grade_v05_signals.py
+      - name: Upload grading
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: v05-forward-signal-grades
+          path: results_v05_grader/
+          if-no-files-found: warn
