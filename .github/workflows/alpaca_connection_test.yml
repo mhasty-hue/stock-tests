@@ -21,11 +21,29 @@ jobs:
         with:
           python-version: '3.11'
 
+      - name: Prepare diagnostics directory
+        run: mkdir -p results_alpaca_test
+
       - name: Test Alpaca paper market data
+        id: alpaca_test
+        continue-on-error: true
         env:
           ALPACA_API_KEY: ${{ secrets.ALPACA_API_KEY }}
           ALPACA_SECRET_KEY: ${{ secrets.ALPACA_SECRET_KEY }}
-        run: python src/alpaca_connection_test.py
+        run: |
+          set +e
+          python src/alpaca_connection_test.py > results_alpaca_test/console.txt 2>&1
+          code=$?
+          echo "exit_code=$code" >> "$GITHUB_OUTPUT"
+          cat results_alpaca_test/console.txt
+          exit $code
+
+      - name: Record workflow diagnostics
+        if: always()
+        run: |
+          echo "alpaca_test_outcome=${{ steps.alpaca_test.outcome }}" > results_alpaca_test/workflow_status.txt
+          echo "alpaca_test_exit_code=${{ steps.alpaca_test.outputs.exit_code }}" >> results_alpaca_test/workflow_status.txt
+          find results_alpaca_test -maxdepth 1 -type f -print
 
       - name: Upload diagnostics
         if: always()
@@ -33,4 +51,4 @@ jobs:
         with:
           name: alpaca-connection-test
           path: results_alpaca_test/
-          if-no-files-found: warn
+          if-no-files-found: error
