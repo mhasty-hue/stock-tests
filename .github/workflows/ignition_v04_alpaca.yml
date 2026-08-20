@@ -1,0 +1,51 @@
+name: Catalyst Ignition v0.4 Alpaca scan
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'src/catalyst_ignition_v04_alpaca.py'
+      - '.github/workflows/ignition_v04_alpaca.yml'
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Prepare diagnostics directory
+        run: mkdir -p results_v04_alpaca
+
+      - name: Run Alpaca Catalyst Ignition scan
+        continue-on-error: true
+        env:
+          ALPACA_API_KEY: ${{ secrets.ALPACA_API_KEY }}
+          ALPACA_SECRET_KEY: ${{ secrets.ALPACA_SECRET_KEY }}
+          ALPACA_DATA_FEED: 'iex'
+          IGNITION_MIN_PRICE: '2'
+          IGNITION_MAX_PRICE: '100'
+          IGNITION_MAX_SYMBOLS: '8000'
+          IGNITION_TOP_DEEP: '100'
+          IGNITION_MIN_DOLLAR_VOL: '1000000'
+        run: |
+          python src/catalyst_ignition_v04_alpaca.py 2>&1 | tee results_v04_alpaca/console.txt
+
+      - name: Upload Alpaca ignition results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: catalyst-ignition-v04-alpaca
+          path: results_v04_alpaca/
+          if-no-files-found: error
