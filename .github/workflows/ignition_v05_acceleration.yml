@@ -1,0 +1,51 @@
+name: Catalyst Ignition v0.5 acceleration scan
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'src/catalyst_ignition_v05_acceleration.py'
+      - '.github/workflows/ignition_v05_acceleration.yml'
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Prepare diagnostics directory
+        run: mkdir -p results_v05_acceleration
+
+      - name: Run acceleration-aware Alpaca scan
+        continue-on-error: true
+        env:
+          ALPACA_API_KEY: ${{ secrets.ALPACA_API_KEY }}
+          ALPACA_SECRET_KEY: ${{ secrets.ALPACA_SECRET_KEY }}
+          ALPACA_DATA_FEED: 'iex'
+          IGNITION_MIN_PRICE: '2'
+          IGNITION_MAX_PRICE: '100'
+          IGNITION_MAX_SYMBOLS: '8000'
+          IGNITION_TOP_DEEP: '140'
+          IGNITION_MIN_DOLLAR_VOL: '750000'
+        run: |
+          python src/catalyst_ignition_v05_acceleration.py 2>&1 | tee results_v05_acceleration/console.txt
+
+      - name: Upload acceleration scan
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: catalyst-ignition-v05-acceleration
+          path: results_v05_acceleration/
+          if-no-files-found: error
