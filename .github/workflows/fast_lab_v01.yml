@@ -1,0 +1,40 @@
+name: Fast Lab v0.1 batch test
+on:
+  workflow_dispatch:
+    inputs:
+      symbols:
+        description: 'Comma-separated affordable-stock sample'
+        required: false
+        default: 'SOFI,F,PLTR,RIVN,LCID,NIO,OPEN,MARA,RIOT,CLSK,IONQ,ACHR,JOBY,SOUN,BBAI,TLRY,AMC,GME,NU,GRAB,VALE,PBR,AAL,CCL,HOOD'
+      start:
+        required: false
+        default: '2025-01-02'
+      end:
+        required: false
+        default: '2025-03-31'
+jobs:
+  research:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install requests
+      - name: Run batch historical ignition test
+        env:
+          ALPACA_API_KEY: ${{ secrets.ALPACA_API_KEY }}
+          ALPACA_SECRET_KEY: ${{ secrets.ALPACA_SECRET_KEY }}
+          ALPACA_DATA_FEED: iex
+          LAB_SYMBOLS: ${{ inputs.symbols }}
+          LAB_START: ${{ inputs.start }}
+          LAB_END: ${{ inputs.end }}
+        run: python src/fast_lab_v01.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: fast-lab-v01-results
+          path: results_fast_lab_v01/
+          if-no-files-found: warn
